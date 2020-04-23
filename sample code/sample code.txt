@@ -1,195 +1,239 @@
-var
-  n: BigInteger;
-  qpower: BigInteger;
-  ppower: BigInteger;
-  ps_array: array of uint64;
-  es_array: array of uint64;
-  ps_index: array of Integer;
-  es_index: array of Integer;
-  q_index: Integer;
-  alpha_index: Integer;
-  q: uint64;
-  alpha: uint64;
-  i: Integer;
-  s: string;
-
-  function GreaterThanPower(x: BigInteger): uint64;
-  var
-    k: uint64;
-    c: BigInteger;
-  begin
-    for k := 0 to 1000000 do
-    begin
-      if x < BigInteger.Pow(10,k) then
-      begin
-        result := k-1;
-        exit;
-      end;
-
-    end;
-
-  end;
-
-  function SmallerThanPower(x: BigInteger): uint64;
-  begin
-    result := GreaterThanPower(x);
-    result := result + 1;
-  end;
-
-  procedure CheckNumber;
-  var
-    indpower: BigInteger;
-    largestindpower: BigInteger;
-    smallestindpower: BigInteger;
-    largestindindex: integer;
-    smallestindindex: integer;
-    j: Integer;
-    sigma: BigInteger;
-    divq, divr: BigInteger;
-  begin
-    q := StrToInt64(stringgrid1.Cells[0,q_index]);
-    alpha := StrToInt64(stringgrid1.Cells[1,alpha_index]);
-    for j := 0 to numps-1 do
-    begin
-      ps_array[j] := StrToInt64(stringgrid1.Cells[j*2+2,ps_index[j]]);
-      es_array[j] := StrToInt64(stringgrid1.Cells[j*2+3,es_index[j]]);
-    end;
-
-    s := '(' + inttostr(q)+'^'+inttostr(alpha)+')';
-    for j := 0 to numps-1 do
-      s := s + '(' + inttostr(ps_array[j]) + '^' + inttostr(2*es_array[j]) + ')';
-
-    Memo6.lines.add(s);
-
-    qpower := BigInteger.Pow(q,alpha);
-    memo6.Lines.Add('q^alpha is greater than 10^' + IntToStr(GreaterThanPower(qpower)));
-
-    ppower := BigInteger.Pow(ps_array[0],es_array[0]);
-    smallestindpower := ppower;
-    largestindpower := ppower;
-    smallestindindex := 0;
-    largestindindex := 0;
-
-    if numps > 1 then
-    for j := 1 to numps-1 do
-    begin
-      indpower := BigInteger.Pow(ps_array[j],2*es_array[j]);
-      if indpower < smallestindpower then
-      begin
-        smallestindpower := indpower;
-        smallestindindex := j;
-      end;
-      if indpower > largestindpower then
-      begin
-        largestindpower := indpower;
-        largestindindex := j;
-      end;
-
-      ppower := BigInteger.Multiply(ppower,indpower);
-    end;
-
-    memo6.Lines.Add('The smallest p power is p' +inttostr(smallestindindex+1) + '^2e' + inttostr(smallestindindex+1));
-    memo6.Lines.Add('     it is smaller than 10^' + IntToStr(SmallerThanPower(smallestindpower)));
-    memo6.Lines.Add('The largest p power is p' +inttostr(largestindindex+1) + '^2e' + inttostr(largestindindex+1));
-    memo6.Lines.Add('     it is larger than 10^' + IntToStr(GreaterThanPower(largestindpower)));
-
-    if BigInteger.Remainder(ppower-1,8)=0 then
-      memo6.Lines.Add('P^2 is ≡ 1 mod 8')
-    else
-      memo6.Lines.Add('P^2 is NOT ≡ 1 mod 8');
-
-   n := BigInteger.Multiply(qpower,ppower);
-
-   memo6.Lines.Add('N is greater than 10^' + inttostr(GreaterThanPower(n)));
-
-   if BigInteger.Remainder(n,105)=0 then
-      memo6.Lines.Add('105 divides N')
-    else
-      memo6.Lines.Add('105 does NOT divide N');
-
-   if (BigInteger.Remainder(n,3)=0)
-      and (BigInteger.Remainder(n,5)=0)
-      and (BigInteger.Remainder(n,7)=0) then
-     memo6.Lines.Add('All of 3,5,7 divide N');
-
-   if BigInteger.Remainder(n,3)=0 then
-      memo6.Lines.Add('3 divides N')
-    else
-      memo6.Lines.Add('3 does NOT divide N');
-
-   if BigInteger.Remainder(n-1,12)=0 then
-      memo6.Lines.Add('N is ≡ 1 mod 12')
-    else
-      memo6.Lines.Add('N is NOT ≡ 1 mod 12');
-
-   if BigInteger.Remainder(n-117,468)=0 then
-      memo6.Lines.Add('N is ≡ 117 mod 468')
-    else
-      memo6.Lines.Add('N is NOT ≡ 117 mod 468');
-
-   if BigInteger.Remainder(n-81,324)=0 then
-      memo6.Lines.Add('N is ≡ 81 mod 324')
-    else
-      memo6.Lines.Add('N is NOT ≡ 81 mod 324');
-
-   Sigma := BigInteger.Divide(BigInteger.Pow(q,alpha+1)-1,q-1);
-   for j := 0 to numps-1 do
-     Sigma := BigInteger.Multiply(Sigma,BigInteger.Divide(BigInteger.Pow(ps_array[j],2*es_array[j]+1)-1,ps_array[j]-1));
-
-   BigInteger.DivMod(Sigma,n, divq, divr);
-   if divq < 2 then
-     memo6.Lines.Add('σ(n)/n < 2')
-   else
-   if (divq=2) and (divr=0) then
-     memo6.Lines.Add('σ(n)/n = 2')
-   else
-     memo6.Lines.Add('σ(n)/n > ' + divq.ToString);
-
-   memo6.Lines.Add('------------------------------------------------------------------');
-  end;
-
-begin
-  setlength(ps_array, numps);
-  setlength(es_array, numps);
-  setlength(ps_index, numps);
-  setlength(es_index, numps);
-
-  q_index := 0;
-  alpha_index := 0;
-
-  for i := 0 to numps-1 do
-  begin
-    ps_index[i] := 0;
-    es_index[i] := 0;
-  end;
-
-  while true do
-  begin
-    CheckNumber;
-    for i := numps downto 0 do
-    begin
-      if i > 0 then
-      begin
-        es_index[i-1] := es_index[i-1] + 1;
-        if stringgrid1.Cells[2*i+1,es_index[i-1]] <> '' then
-          break;
-        es_index[i-1] := 0;
-        ps_index[i-1] := ps_index[i-1] + 1;
-        if stringgrid1.Cells[2*i,ps_index[i-1]] <> '' then
-          break;
-        ps_index[i-1] := 0;
-      end
-      else
-      begin
-        alpha_index := alpha_index + 1;
-        if stringgrid1.Cells[1,alpha_index] <> '' then
-          break;
-        alpha_index := 0;
-        q_index := q_index + 1;
-        if stringgrid1.Cells[0,q_index] = '' then
-          exit;
-      end;
-    end;
-
-  end;
-end;
+  0  var
+  1    n: BigInteger;
+  2    qpower: BigInteger;
+  3    ppower: BigInteger;
+  4    ps_array: array of uint64;
+  5    es_array: array of uint64;
+  6    ps_index: array of Integer;
+  7    es_index: array of Integer;
+  8    q_index: Integer;
+  9    alpha_index: Integer;
+ 10    q: uint64;
+ 11    alpha: uint64;
+ 12    i: Integer;
+ 13    s: string;
+ 14    rowindex: integer;
+ 15  
+ 16    function GreaterThanPower(x: BigInteger): uint64;
+ 17    var
+ 18      k: uint64;
+ 19      c: BigInteger;
+ 20    begin
+ 21      c := x;
+ 22      k := 0;
+ 23      while c > 0 do
+ 24      begin
+ 25        c := BigInteger.Divide(c, 10);
+ 26        k := k + 1;
+ 27      end;
+ 28      result := k-1;
+ 29    end;
+ 30  
+ 31    function SmallerThanPower(x: BigInteger): uint64;
+ 32    begin
+ 33      result := GreaterThanPower(x);
+ 34      result := result + 1;
+ 35    end;
+ 36  
+ 37    procedure CheckNumber;
+ 38    var
+ 39      int: uint64;
+ 40      indpower: BigInteger;
+ 41      largestindpower: BigInteger;
+ 42      smallestindpower: BigInteger;
+ 43      largestindindex: integer;
+ 44      smallestindindex: integer;
+ 45      j: Integer;
+ 46      sigma: BigInteger;
+ 47      divq, divr: BigInteger;
+ 48      sigdec: Double;
+ 49    begin
+ 50      if stringgrid2.RowCount < (rowindex+1) then
+ 51        stringgrid2.RowCount := rowindex + 1;
+ 52  
+ 53      q := StrToInt64(stringgrid1.Cells[0,q_index]);
+ 54      alpha := StrToInt64(stringgrid1.Cells[1,alpha_index]);
+ 55      for j := 0 to numps-1 do
+ 56      begin
+ 57        ps_array[j] := StrToInt64(stringgrid1.Cells[j*2+2,ps_index[j]]);
+ 58        es_array[j] := StrToInt64(stringgrid1.Cells[j*2+3,es_index[j]]);
+ 59      end;
+ 60  
+ 61      s := '(' + inttostr(q)+'^'+inttostr(alpha)+')';
+ 62      for j := 0 to numps-1 do
+ 63        s := s + '(' + inttostr(ps_array[j]) + '^' + inttostr(2*es_array[j]) + ')';
+ 64  
+ 65      stringgrid2.Cells[0,rowindex] := s;
+ 66  
+ 67      qpower := BigInteger.Pow(q,alpha);
+ 68      int := GreaterThanPower(qpower);
+ 69      stringgrid2.Cells[1,rowindex] := '10^' + IntToStr(int);
+ 70  
+ 71      ppower := BigInteger.Pow(ps_array[0],2*es_array[0]);
+ 72      smallestindpower := ppower;
+ 73      largestindpower := ppower;
+ 74      smallestindindex := 0;
+ 75      largestindindex := 0;
+ 76  
+ 77      if numps > 1 then
+ 78      for j := 1 to numps-1 do
+ 79      begin
+ 80        indpower := BigInteger.Pow(ps_array[j],2*es_array[j]);
+ 81        if indpower < smallestindpower then
+ 82        begin
+ 83          smallestindpower := indpower;
+ 84          smallestindindex := j;
+ 85        end;
+ 86        if indpower > largestindpower then
+ 87        begin
+ 88          largestindpower := indpower;
+ 89          largestindindex := j;
+ 90        end;
+ 91  
+ 92        ppower := BigInteger.Multiply(ppower,indpower);
+ 93      end;
+ 94  
+ 95      stringgrid2.Cells[2,rowindex] := 'p' + inttostr(smallestindindex+1) + '^2e' + inttostr(smallestindindex+1);
+ 96      stringgrid2.Cells[3,rowindex] :='10^' + IntToStr(SmallerThanPower(smallestindpower));
+ 97      stringgrid2.Cells[4,rowindex] := 'p' +inttostr(largestindindex+1) + '^2e' + inttostr(largestindindex+1);
+ 98      stringgrid2.Cells[5,rowindex] := '10^' + IntToStr(GreaterThanPower(largestindpower));
+ 99  
+100      if BigInteger.Remainder(ppower-1,16)=0 then
+101        stringgrid2.Cells[6,rowindex] := 'yes'
+102      else
+103        stringgrid2.Cells[6,rowindex] := 'no';
+104  
+105      if BigInteger.Remainder(ppower-1,32)=0 then
+106        stringgrid2.Cells[7,rowindex] := 'yes'
+107      else
+108        stringgrid2.Cells[7,rowindex] := 'no';
+109  
+110     n := BigInteger.Multiply(qpower,ppower);
+111  
+112     stringgrid2.Cells[8,rowindex] := '10^' + inttostr(GreaterThanPower(n));
+113  
+114     if BigInteger.Remainder(n-1,12)=0 then
+115        stringgrid2.cells[9,rowindex] := 'yes'
+116      else
+117        stringgrid2.cells[9,rowindex] := 'no';
+118  
+119     if BigInteger.Remainder(n-117,468)=0 then
+120        stringgrid2.cells[10,rowindex] := 'yes'
+121      else
+122        stringgrid2.cells[10,rowindex] := 'no';
+123  
+124     if BigInteger.Remainder(n-81,324)=0 then
+125        stringgrid2.cells[11,rowindex] := 'yes'
+126      else
+127        stringgrid2.cells[11,rowindex] := 'no';
+128  
+129     if BigInteger.Remainder(n,105)=0 then
+130        stringgrid2.cells[12,rowindex] := 'yes'
+131      else
+132        stringgrid2.cells[12,rowindex] := 'no';
+133  
+134  
+135     Sigma := BigInteger.Divide(BigInteger.Pow(q,alpha+1)-1,q-1);
+136     for j := 0 to numps-1 do
+137     begin
+138       Sigma := BigInteger.Multiply(Sigma,BigInteger.Divide(BigInteger.Pow(ps_array[j],2*es_array[j]+1)-1,ps_array[j]-1));
+139     end;
+140  
+141     BigInteger.DivMod(Sigma,n, divq, divr);
+142  
+143     if divq < 2 then
+144       stringgrid2.Cells[13,rowindex] := '< 2'
+145     else
+146     if (divq=2) and (divr=0) then
+147       stringgrid2.Cells[13,rowindex] := '= 2'
+148     else
+149       stringgrid2.Cells[13,rowindex] := ' > ' + divq.ToString;
+150  
+151     stringgrid2.Cells[14,rowindex] := '10^' + IntToStr(GreaterThanPower(divr));
+152  
+153    end;
+154  
+155  begin
+156    self.Cursor := crHourGlass;
+157    application.ProcessMessages;
+158    try
+159  
+160      stringgrid2.RowCount := 0;
+161      stringgrid2.RowCount := 1;
+162      setlength(ps_array, numps);
+163      setlength(es_array, numps);
+164      setlength(ps_index, numps);
+165      setlength(es_index, numps);
+166  
+167      if RadioButton1.IsChecked then
+168      begin
+169  
+170        q_index := 0;
+171        alpha_index := 0;
+172        rowindex := 0;
+173  
+174        for i := 0 to numps-1 do
+175        begin
+176          ps_index[i] := 0;
+177          es_index[i] := 0;
+178        end;
+179  
+180        while true do
+181        begin
+182          CheckNumber;
+183          for i := numps downto 0 do
+184          begin
+185            if i > 0 then
+186            begin
+187              es_index[i-1] := es_index[i-1] + 1;
+188              if stringgrid1.Cells[2*i+1,es_index[i-1]] <> '' then
+189                break;
+190              es_index[i-1] := 0;
+191              ps_index[i-1] := ps_index[i-1] + 1;
+192              if stringgrid1.Cells[2*i,ps_index[i-1]] <> '' then
+193                break;
+194              ps_index[i-1] := 0;
+195            end
+196            else
+197            begin
+198              alpha_index := alpha_index + 1;
+199              if stringgrid1.Cells[1,alpha_index] <> '' then
+200                break;
+201              alpha_index := 0;
+202              q_index := q_index + 1;
+203              if stringgrid1.Cells[0,q_index] = '' then
+204                exit;
+205            end;
+206          end;
+207          rowindex := rowindex + 1;
+208        end;
+209      end
+210      else
+211      begin
+212        rowindex := 0;
+213  
+214        while rowindex < stringgrid1.RowCount do
+215        begin
+216          if stringgrid1.Cells[0,rowindex]='' then
+217            break;
+218  
+219          q_index := rowindex;
+220          alpha_index := rowindex;
+221          for i := 0 to numps-1 do
+222          begin
+223            ps_index[i] := rowindex;
+224            es_index[i] := rowindex;
+225          end;
+226          CheckNumber;
+227          rowindex := rowindex + 1;
+228          if (rowindex mod 100)=0 then
+229            application.ProcessMessages;
+230        end;
+231      end;
+232    finally
+233      self.Cursor := crDefault;
+234    end;
+235  
+236    Showmessage('done');
+237    beep;
+238  end;
