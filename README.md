@@ -66,8 +66,8 @@ OPN Sandbox uses Gnu Multiple Precision Arithmetic Library (GMP) for processing 
 
 If you are interested in contributing to the development of this project, please consider contributing directly. See Authors for contact information.
  
-### 7. Author(s)
-* Matthew Thomas - *Initial work* [Math projects on github](https://www.github.com/mathprojects), [mattzart.com](http://www.mattzart.com), [mattfwd@mattzart.com](mailto:mattfwd@mattzart.com?subject=OPN%20Sandbox), [ORCID: [0000-0001-6511-3223]](http://orcid.org/0000-0001-6511-3223)
+## 7. Author(s)
+* Matthew Thomas - *Initial work* [github: Math Projects](https://www.github.com/mathprojects), [Website: mattzart.com](http://www.mattzart.com), [Email: mattfwd@mywebsite](mailto:mattfwd@mattzart.com?subject=OPN%20Sandbox), [ORCID: [0000-0001-6511-3223]](http://orcid.org/0000-0001-6511-3223)
 * Additional authors - Won't you contribute?
 
 ## 8. License
