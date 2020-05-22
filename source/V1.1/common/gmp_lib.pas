@@ -38,12 +38,16 @@ const
      GMP_LIB_FILE = 'gmp.dll';
    {$ELSEIF Defined(WIN64)}
      GMP_LIB_FILE = 'gmp.dll';
-   {$ELSEIF Defined(MACOS64)}
+   {$ELSEIF Defined(MACOS64) or (Defined(DARWIN) and Defined(CPU64))}
      GMP_LIB_FILE = 'libgmp.dylib';
-   {$ELSEIF Defined(LINUX64)}
+   {$ELSEIF Defined(LINUX64) or (Defined(LINUX) and Defined(CPU64))}
      GMP_LIB_FILE = 'libgmp.so';
    {$ELSE}
-      {$Message Error 'OS might not be supported!'}
+     {$IFDEF FPC}
+       {$STOP Error 'OS might not be supported!'}
+     {$ELSE}
+       {$MESSAGE Error 'OS might not be supported!'}
+     {$ENDIF}
    {$ENDIF}
 
 type
