@@ -25,10 +25,15 @@ uses
   {$IFnDEF FPC}
   System.SysUtils,
   System.Classes,
+  System.Types,
+  System.StrUtils,
   {$ELSE}
   SysUtils,
+  Types,
+  StrUtils,
   {$ENDIF }
-  gmp_obj, Math;
+  Math,
+  gmp_obj;
 
 type
   BigInteger = gmpInteger;
@@ -46,7 +51,7 @@ type
   private
     i: integer;
     s: string;
-    RowInputNumbers: TStringList;
+    RowInputNumbers: TStringDynArray;
     Alpha: cardinal;
     BetasArray: array of uint64;
     CacheBins: array of TCacheBinRecord;
@@ -64,7 +69,7 @@ type
     NumeratorPower: BigInteger;
     QsArray: array of BigInteger;
 
-    function ProcessParsedInput(var InputStr: string; var OutputStr: string): boolean;
+    function ProcessParsedInput(var InputStr: string; var OutputStr: unicodestring): boolean;
     procedure FreeGmpVars;
     procedure CreateGmpVars;
 
@@ -78,7 +83,7 @@ type
     function OutputHeaderString: UnicodeString;
     procedure SetFPPrecChars(NumChars: integer);
 
-    function ProcessInputString(var InputStr: string; var OutputStr: string): boolean;
+    function ProcessInputString(var InputStr: string; var OutputStr: unicodestring): boolean;
     constructor Create;
     destructor Destroy;
   end;
@@ -150,7 +155,7 @@ implementation
   end;
   }
 
-  function TOpnPropProc.ProcessParsedInput(var InputStr: string; var OutputStr: string): boolean;
+  function TOpnPropProc.ProcessParsedInput(var InputStr: string; var OutputStr: unicodestring): boolean;
   var
     i: integer;
     j: integer;
@@ -340,7 +345,37 @@ implementation
    result := true;
   end;
 
-  function TOpnPropProc.ProcessInputString(var InputStr: string; var OutputStr: string): boolean;
+  {$IFDEF FPC}
+  (* FPC does not have SplitString function, so we make one here *)
+  function SplitString(var Str: string; Delim: char): TStringDynArray;
+  var
+    N: integer;
+    s: string;
+    i: integer;
+  begin
+    setlength(result, 0);
+
+    if Str = '' then
+      exit;
+
+    N := 1;
+
+    (* Is there a split string function? If not, we will do it this way.
+    Count the number of commas, which indicates the number of items -1,
+    then extract each item *)
+    for i := 1 to length(Str) do
+      if Str[i] = ',' then
+        inc(N);
+
+    setlength(result, N);
+
+    (* Get each item and put it in the output array *)
+    for i := 1 to N do
+      result[i-1] := ExtractDelimited(i, Str, [',']);
+  end;
+  {$ENDIF}
+
+  function TOpnPropProc.ProcessInputString(var InputStr: string; var OutputStr: unicodestring): boolean;
   var
     i: integer;
     s: string;
@@ -348,91 +383,94 @@ implementation
     result := false;
     OutputStr := '';
 
-    (* Parse comma separated values *)
-    RowInputNumbers.Clear;
-    ExtractStrings([','], [], pchar(InputStr), RowInputNumbers);
+    try
+      (* Parse comma separated values *)
+      RowInputNumbers := SplitString(InputStr, ',');
 
-    (* if this is the first row, the first few characters might be a file signature,
-    such as the UTF8 signature if the data was exported from Excel *)
-    if RowsProcessed = 0 then
-    begin
-      s := RowInputNumbers.Strings[0];
-      while StrToIntDef(copy(s,1,1), -1) = -1 do
-        delete(s, 1, 1);
-      RowInputNumbers.Strings[0] := s;
-    end;
-
-    (* If less than 4 items, there is a problem *)
-    if RowInputNumbers.Count < 20 then
-    begin
-      Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has less than 10 prime powers.');
-      exit;
-    end;
-
-    (* If not an even number of items, problem *)
-    if (RowInputNumbers.Count mod 2) <> 0 then
-    begin
-      Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an odd numbers of entries.');
-      exit;
-    end;
-
-    (* Get p and alpha *)
-    P.Assign(StrToUint64Def(RowInputNumbers.Strings[0], 0));
-
-    if P = 0 then
-    begin
-      ErrorMessage :='Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for P, "' + RowInputNumbers.Strings[0] + '"';
-      exit;
-    end;
-
-    Alpha := StrToUint64Def(RowInputNumbers.Strings[1], 0);
-
-    if Alpha = 0 then
-    begin
-      Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for alpha.');
-      exit;
-    end;
-
-    (* Make sure the q's and beta's array are big enough. They can be too big, but if they
-    are too small, we need to grow the arrays and create gmp vars for each new var.
-    To determine how many q's we have, we decrement by 2 to take into account p and alpha,
-    and then remaining rowinputnumbers are 2 for each q: base and power. *)
-    NumQs := (RowInputNumbers.Count - 2) div 2;
-    while length(QsArray) < NumQs do
-    begin
-      (* Grow QsArray by one and create the gmp var *)
-      setlength(QsArray, length(QsArray) + 1);
-      QsArray[length(QsArray)-1].Create(0);
-      (* Grow BetasArray by one and initialize it; it is not a gmp var *)
-      setlength(BetasArray, length(BetasArray) + 1);
-      BetasArray[length(BetasArray)-1] := 0;
-    end;
-
-    (* Read q's and beta's *)
-    for i := 1 to NumQs do
-    begin
-      QsArray[i-1].Assign(StrToUint64Def(RowInputNumbers.Strings[(i*2)], 0));
-      BetasArray[i-1] := StrToUint64Def(RowInputNumbers.Strings[(i*2)+1], 0);
-
-      if (QsArray[i-1] = 0) then
+      (* if this is the first row, the first few characters might be a file signature,
+      such as the UTF8 signature if the data was exported from Excel *)
+      if RowsProcessed = 0 then
       begin
-        Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for q' + inttostr(i) + '.');
+        s := RowInputNumbers[0];
+        while StrToIntDef(copy(s,1,1), -1) = -1 do
+          delete(s, 1, 1);
+        RowInputNumbers[0] := s;
+      end;
+
+      (* If less than 4 items, there is a problem *)
+      if length(RowInputNumbers) < 20 then
+      begin
+        Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has less than 10 prime powers.');
         exit;
       end;
 
-      if (BetasArray[i-1] = 0) then
+      (* If not an even number of items, problem *)
+      if (length(RowInputNumbers) mod 2) <> 0 then
       begin
-        Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for b' + inttostr(i) + '.');
+        Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an odd numbers of entries.');
         exit;
       end;
 
+      (* Get p and alpha *)
+      P.Assign(StrToUint64Def(RowInputNumbers[0], 0));
+
+      if P = 0 then
+      begin
+        ErrorMessage :='Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for P, "' + RowInputNumbers[0] + '"';
+        exit;
+      end;
+
+      Alpha := StrToUint64Def(RowInputNumbers[1], 0);
+
+      if Alpha = 0 then
+      begin
+        Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for alpha.');
+        exit;
+      end;
+
+      (* Make sure the q's and beta's array are big enough. They can be too big, but if they
+      are too small, we need to grow the arrays and create gmp vars for each new var.
+      To determine how many q's we have, we decrement by 2 to take into account p and alpha,
+      and then remaining rowinputnumbers are 2 for each q: base and power. *)
+      NumQs := (length(RowInputNumbers) - 2) div 2;
+      while length(QsArray) < NumQs do
+      begin
+        (* Grow QsArray by one and create the gmp var *)
+        setlength(QsArray, length(QsArray) + 1);
+        QsArray[length(QsArray)-1].Create(0);
+        (* Grow BetasArray by one and initialize it; it is not a gmp var *)
+        setlength(BetasArray, length(BetasArray) + 1);
+        BetasArray[length(BetasArray)-1] := 0;
+      end;
+
+      (* Read q's and beta's *)
+      for i := 1 to NumQs do
+      begin
+        QsArray[i-1].Assign(StrToUint64Def(RowInputNumbers[(i*2)], 0));
+        BetasArray[i-1] := StrToUint64Def(RowInputNumbers[(i*2)+1], 0);
+
+        if (QsArray[i-1] = 0) then
+        begin
+          Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for q' + inttostr(i) + '.');
+          exit;
+        end;
+
+        if (BetasArray[i-1] = 0) then
+        begin
+          Writeln('Error: Row ' + inttostr(RowsProcessed + 1) + ' has an unrecognizable entry for b' + inttostr(i) + '.');
+          exit;
+        end;
+
+      end;
+
+      result := ProcessParsedInput(InputStr, OutputStr);
+
+      if result = true then
+        inc(RowsProcessed);
+    finally
+      (* Free memory that was allocated for this array *)
+      setlength(RowInputNumbers, 0);
     end;
-
-    result := ProcessParsedInput(InputStr, OutputStr);
-
-    if result = true then
-      inc(RowsProcessed);
-
   end;
 
   procedure TOpnPropProc.CreateGmpVars;
@@ -500,7 +538,7 @@ implementation
     CreateGmpVars;
   end;
 
-  function TOpnPropProc.OutputHeaderString: string;
+  function TOpnPropProc.OutputHeaderString: unicodestring;
   begin
       (* Output column headers *)
       if not ShowDigits then
@@ -526,9 +564,6 @@ implementation
   begin
     inherited;
 
-    (* Create RowInputNumbers *)
-    RowInputNumbers := TStringList.Create;
-
     (* After we set default precision, we can create float gmp var, along
     with other gmp vars that need to be created too *)
     CreateGmpVars;
@@ -538,9 +573,6 @@ implementation
 
   destructor TOpnPropProc.Destroy;
   begin
-    if Assigned(RowInputNumbers) then
-      RowInputNumbers.Free;
-
     FreeGmpVars;
 
     inherited;

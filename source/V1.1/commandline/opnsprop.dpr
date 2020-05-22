@@ -28,6 +28,8 @@ uses
   System.Classes,
   {$ELSE}
   SysUtils,
+  Classes,
+  CustApp,
   {$ENDIF }
   OpnPropProc;
 
@@ -38,7 +40,6 @@ var
   OutputFile: TextFile;
   FileStream: TFileStream;
   UTF8FileSignature: array[0..2] of byte;
-  TestStringStream: TStringStream;
   MaxRows: integer;
   StartTime, EndTime: cardinal;
   InputStr: string;
