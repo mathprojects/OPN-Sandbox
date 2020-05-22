@@ -1,1 +1,0 @@
-uploading of the linux version of opnsprop will take place soon
